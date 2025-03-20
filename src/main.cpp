@@ -48,10 +48,6 @@ void handleRoot() {
       function moveRight() { fetch('/right'); }
       function moveReverse() { fetch('/reverse'); }
 
-      function updateMotorSpeed(pos) {
-        document.getElementById('motorSpeed').innerHTML = pos;
-        fetch(`/speed?value=${pos}`);
-      }
     </script>
   </head>
   <body>
@@ -65,8 +61,6 @@ void handleRoot() {
       </p>
     </div>
     <p><button class="button" onclick="moveReverse()">REVERSE</button></p>
-    <p>Motor Speed: <span id="motorSpeed">0</span></p>
-    <input type="range" min="0" max="100" step="25" id="motorSlider" oninput="updateMotorSpeed(this.value)" value="0"/>
   </body>
   </html>)rawliteral";
   server.send(200, "text/html", html);
@@ -105,10 +99,6 @@ void handleStop() {
 void handleRight() {
   Serial.println("Right");
   motorControl.right();
-  // digitalWrite(motor1Pin1, LOW); 
-  // digitalWrite(motor1Pin2, HIGH); 
-  // digitalWrite(motor2Pin1, LOW);
-  // digitalWrite(motor2Pin2, LOW);    
   server.send(200);
 }
 
@@ -120,23 +110,23 @@ void handleReverse() {
 }
 
 void handleSpeed() {
-  if (server.hasArg("value")) {
-    valueString = server.arg("value");
-    int value = valueString.toInt();
-    if (value == 0) {
-      ledcWrite(0, 0); // Channel 0 for enable1Pin
-      ledcWrite(1, 0); // Channel 1 for enable2Pin
-      digitalWrite(motor1Pin1, LOW); 
-      digitalWrite(motor1Pin2, LOW); 
-      digitalWrite(motor2Pin1, LOW);
-      digitalWrite(motor2Pin2, LOW);   
-    } else { 
-      dutyCycle = map(value, 0, 100, 0, 255); // Correct mapping
-      ledcWrite(0, dutyCycle); // Channel 0 for enable1Pin
-      ledcWrite(1, dutyCycle); // Channel 1 for enable2Pin
-      Serial.println("Motor speed set to " + String(value));
-    }
-  }
+  // if (server.hasArg("value")) {
+  //   valueString = server.arg("value");
+  //   int value = valueString.toInt();
+  //   if (value == 0) {
+  //     ledcWrite(0, 0); // Channel 0 for enable1Pin
+  //     ledcWrite(1, 0); // Channel 1 for enable2Pin
+  //     digitalWrite(motor1Pin1, LOW); 
+  //     digitalWrite(motor1Pin2, LOW); 
+  //     digitalWrite(motor2Pin1, LOW);
+  //     digitalWrite(motor2Pin2, LOW);   
+  //   } else { 
+  //     dutyCycle = map(value, 0, 100, 0, 255); // Correct mapping
+  //     ledcWrite(0, dutyCycle); // Channel 0 for enable1Pin
+  //     ledcWrite(1, dutyCycle); // Channel 1 for enable2Pin
+  //     Serial.println("Motor speed set to " + String(value));
+  //   }
+  // }
   server.send(200);
 }
 
@@ -158,11 +148,11 @@ void setup() {
   Serial.println(ssid);
   WiFi.begin(ssid, password);
   int attempts = 0;
-  while (WiFi.status() != WL_CONNECTED && attempts < 20) { // Add retry limit
-    delay(500);
-    Serial.print(".");
-    attempts++;
-  }
+  // while (WiFi.status() != WL_CONNECTED && attempts < 20) { // Add retry limit
+  //   // delay(500);
+  //   // Serial.print(".");
+  //   // attempts++;
+  // }
   if (WiFi.status() == WL_CONNECTED) {
     Serial.println("");
     Serial.println("WiFi connected.");
@@ -171,7 +161,7 @@ void setup() {
   } else {
     Serial.println("");
     Serial.println("Failed to connect to WiFi. Please check credentials.");
-    while (true); // Halt execution
+    // while (true); // Halt execution
   }
 
   // Define routes
@@ -189,4 +179,7 @@ void setup() {
 
 void loop() {
   server.handleClient();
+  ultrasonic_setup();
+  Serial.println(get_distance());
+  delay(1000);
 }
