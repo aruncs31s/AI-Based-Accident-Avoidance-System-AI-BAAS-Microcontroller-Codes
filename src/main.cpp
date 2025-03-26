@@ -13,6 +13,9 @@ const char* password = "12345678";
 // Create an instance of the WebServer on port 80
 WebServer server(80);
 
+// For Led status
+
+bool led_status = 0 ;
 
 
 uint8_t motor1Pin1 = IN1; 
@@ -125,6 +128,7 @@ void handleSpeed() {
   // }
   server.send(200);
 }
+// Danger led get activated when sensor detects vehicle is crossing the lane
 void danger_led(){
   if(ir_sensor_left.is_lane() && ir_sensor_right.is_lane()){
     digitalWrite(LANE_DETECT_LED_PIN ,LOW);
@@ -138,32 +142,38 @@ void automatic_break(){
   switch (ultrasonic.MeasureInCentimeters()) {
     case 0 ... 2: 
       Serial.println("Obstacle very close, stopping.");
-      motorControl.stop();
+      ledcWrite(0, 0);
+      digitalWrite(EMERGENCY_STOP_LED_PIN , HIGH);
+      // motorControl.stop();
       break;
     case 3 ... 5: 
       Serial.println("Obstacle nearby, reducing speed to half.");
       dutyCycle = 128; 
       ledcWrite(0, dutyCycle);
-      motorControl.forward();
+      led_status = !led_status;
+      digitalWrite(EMERGENCY_STOP_LED_PIN , led_status);
+      // motorControl.forward();
       break;
     case 6 ... 10: 
       Serial.println("Obstacle at a safe distance, medium speed.");
       dutyCycle = 200; 
       ledcWrite(0, dutyCycle);
-      motorControl.forward();
+      digitalWrite(EMERGENCY_STOP_LED_PIN , LOW);
+      // motorControl.forward();
       break;
     default: // Distance greater than 10 cm
       Serial.println("No obstacle detected, full speed.");
       dutyCycle = 255; // Full speed
       ledcWrite(0, dutyCycle);
-      motorControl.forward();
+      digitalWrite(EMERGENCY_STOP_LED_PIN , LOW);
+      // motorControl.forward();
       break;
   }
 }
 void setup() {
   Serial.begin(115200);
   pinMode(LANE_DETECT_LED_PIN, OUTPUT); 
-
+  pinMode(EMERGENCY_STOP_LED_PIN, OUTPUT);
   // (channel , freq , resolution )
   ledcSetup(0, freq, resolution); // Channel 0 for enable1Pin
   ledcAttachPin(pwm_pin, 0);
@@ -176,7 +186,7 @@ void setup() {
   Serial.println(ssid);
   WiFi.begin(ssid, password);
   int attempts = 0;
-  while (WiFi.status() != WL_CONNECTED && attempts < 20) { // Add retry limit
+  while (WiFi.status() != WL_CONNECTED && attempts < 100) { // Add retry limit
     delay(500);
     Serial.print(".");
     attempts++;
