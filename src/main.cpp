@@ -128,8 +128,10 @@ void handleSpeed() {
   // }
   server.send(200);
 }
+
 // Danger led get activated when sensor detects vehicle is crossing the lane
 void danger_led(){
+  // Check if the vehicle crossed the lane ,  and if one or 2 sensors(ir) crossed the lane turn_on the "LED"
   if(ir_sensor_left.is_lane() && ir_sensor_right.is_lane()){
     digitalWrite(LANE_DETECT_LED_PIN ,LOW);
   }
