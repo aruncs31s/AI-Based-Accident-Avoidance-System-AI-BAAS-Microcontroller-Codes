@@ -1,10 +1,11 @@
+#include <Arduino.h>
 #include <WiFi.h>
 #include <WebServer.h>
 #include "config.h"
 #include "motor_control.h"
 #include "ultrasonic.h"
-
-
+#include <Wire.h>
+#include "ir_sensor.h"
 // Replace with your network credentials
 const char* ssid     = "pi";
 const char* password = "12345678";
@@ -12,23 +13,31 @@ const char* password = "12345678";
 // Create an instance of the WebServer on port 80
 WebServer server(80);
 
-// Motor 1
-int motor1Pin1 = IN1; 
-int motor1Pin2 = IN2; 
-int enable1Pin = 14;
+
+
+uint8_t motor1Pin1 = IN1; 
+uint8_t motor1Pin2 = IN2; 
 
 // Motor 2
-int motor2Pin1 = IN3; 
-int motor2Pin2 = IN4; 
-int enable2Pin = 32;
+uint8_t motor2Pin1 = IN3; 
+uint8_t motor2Pin2 = IN4; 
+
+uint8_t pwm_pin = PWM_PIN;
 
 MotorControl motorControl(motor1Pin1,motor1Pin2,motor2Pin1,motor2Pin2);
-// Setting PWM properties
+IR_Sensor ir_sensor_left(LEFT_IR_PIN); // Pass only left pin
+IR_Sensor ir_sensor_right(RIGHT_IR_PIN); // Pass only right pin
+
+
+// pwm prop ? check if freq is right
 const int freq = 30000;
-const int resolution = 8;
+const int resolution = 8; // 0 - 255 
 int dutyCycle = 0;
 
 String valueString = String(0);
+
+Ultrasonic ultrasonic(ULTRASONIC_PIN); 
+
 
 void handleRoot() {
   const char html[] PROGMEM = R"rawliteral(
@@ -69,30 +78,18 @@ void handleRoot() {
 void handleForward() {
   Serial.println("Forward");
   motorControl.forward();
-  // digitalWrite(motor1Pin1, LOW);
-  // digitalWrite(motor1Pin2, HIGH); 
-  // digitalWrite(motor2Pin1, LOW);
-  // digitalWrite(motor2Pin2, HIGH);
   server.send(200);
 }
 
 void handleLeft() {
   Serial.println("Left");
   motorControl.left();
-  // digitalWrite(motor1Pin1, LOW); 
-  // digitalWrite(motor1Pin2, LOW); 
-  // digitalWrite(motor2Pin1, LOW);
-  // digitalWrite(motor2Pin2, HIGH);
   server.send(200);
 }
 
 void handleStop() {
   Serial.println("Stop");
   motorControl.stop();
-  // digitalWrite(motor1Pin1, LOW); 
-  // digitalWrite(motor1Pin2, LOW); 
-  // digitalWrite(motor2Pin1, LOW);
-  // digitalWrite(motor2Pin2, LOW);   
   server.send(200);
 }
 
@@ -104,7 +101,6 @@ void handleRight() {
 
 void handleReverse() {
   Serial.println("Reverse");
-  // Test hardware directly
   motorControl.backward();      
   server.send(200);
 }
@@ -129,30 +125,62 @@ void handleSpeed() {
   // }
   server.send(200);
 }
+void danger_led(){
+  if(ir_sensor_left.is_lane() && ir_sensor_right.is_lane()){
+    digitalWrite(LANE_DETECT_LED_PIN ,LOW);
+  }
+  else{
+    digitalWrite(LANE_DETECT_LED_PIN , HIGH);
+  }
+}
 
+void automatic_break(){
+  switch (ultrasonic.MeasureInCentimeters()) {
+    case 0 ... 2: 
+      Serial.println("Obstacle very close, stopping.");
+      motorControl.stop();
+      break;
+    case 3 ... 5: 
+      Serial.println("Obstacle nearby, reducing speed to half.");
+      dutyCycle = 128; 
+      ledcWrite(0, dutyCycle);
+      motorControl.forward();
+      break;
+    case 6 ... 10: 
+      Serial.println("Obstacle at a safe distance, medium speed.");
+      dutyCycle = 200; 
+      ledcWrite(0, dutyCycle);
+      motorControl.forward();
+      break;
+    default: // Distance greater than 10 cm
+      Serial.println("No obstacle detected, full speed.");
+      dutyCycle = 255; // Full speed
+      ledcWrite(0, dutyCycle);
+      motorControl.forward();
+      break;
+  }
+}
 void setup() {
   Serial.begin(115200);
-  ultrasonic_setup();
-  // Configure PWM Pins
+  pinMode(LANE_DETECT_LED_PIN, OUTPUT); 
+
+  // (channel , freq , resolution )
   ledcSetup(0, freq, resolution); // Channel 0 for enable1Pin
-  ledcAttachPin(enable1Pin, 0);
-  ledcSetup(1, freq, resolution); // Channel 1 for enable2Pin
-  ledcAttachPin(enable2Pin, 1);
+  ledcAttachPin(pwm_pin, 0);
     
   // Initialize PWM with 0 duty cycle
   ledcWrite(0, 0); // Channel 0
-  ledcWrite(1, 0); // Channel 1
   
   // Connect to Wi-Fi
   Serial.print("Connecting to ");
   Serial.println(ssid);
   WiFi.begin(ssid, password);
   int attempts = 0;
-  // while (WiFi.status() != WL_CONNECTED && attempts < 20) { // Add retry limit
-  //   // delay(500);
-  //   // Serial.print(".");
-  //   // attempts++;
-  // }
+  while (WiFi.status() != WL_CONNECTED && attempts < 20) { // Add retry limit
+    delay(500);
+    Serial.print(".");
+    attempts++;
+  }
   if (WiFi.status() == WL_CONNECTED) {
     Serial.println("");
     Serial.println("WiFi connected.");
@@ -179,7 +207,7 @@ void setup() {
 
 void loop() {
   server.handleClient();
-  ultrasonic_setup();
-  Serial.println(get_distance());
-  delay(1000);
+  automatic_break();
+  danger_led();
+  delay(100);
 }
