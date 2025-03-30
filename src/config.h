@@ -14,8 +14,9 @@
 // #define ENA 04
 // #define ENB 05
 #define PWM_PIN 14
+#define PWM_PIN_2 12
 
-#define LANE_DETECT_LED_PIN 12 
-#define EMERGENCY_STOP_LED_PIN 13
+#define LANE_DETECT_LED_PIN 22
+#define EMERGENCY_STOP_LED_PIN 21
 
 

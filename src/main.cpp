@@ -26,6 +26,7 @@ uint8_t motor2Pin1 = IN3;
 uint8_t motor2Pin2 = IN4; 
 
 uint8_t pwm_pin = PWM_PIN;
+uint8_t pwm_pin_2 = PWM_PIN_2;
 
 MotorControl motorControl(motor1Pin1,motor1Pin2,motor2Pin1,motor2Pin2);
 IR_Sensor ir_sensor_left(LEFT_IR_PIN); // Pass only left pin
@@ -104,7 +105,10 @@ void handleRight() {
 
 void handleReverse() {
   Serial.println("Reverse");
-  motorControl.backward();      
+  ledcWrite(0, 200);
+  ledcWrite(1, 200);
+  motorControl.backward();
+
   server.send(200);
 }
 
@@ -145,28 +149,34 @@ void automatic_break(){
     case 0 ... 2: 
       Serial.println("Obstacle very close, stopping.");
       ledcWrite(0, 0);
+      ledcWrite(1, 0);
       digitalWrite(EMERGENCY_STOP_LED_PIN , HIGH);
       // motorControl.stop();
+      
       break;
     case 3 ... 5: 
       Serial.println("Obstacle nearby, reducing speed to half.");
-      dutyCycle = 128; 
+      dutyCycle = 100; 
       ledcWrite(0, dutyCycle);
+      ledcWrite(1, dutyCycle);
       led_status = !led_status;
       digitalWrite(EMERGENCY_STOP_LED_PIN , led_status);
       // motorControl.forward();
       break;
     case 6 ... 10: 
       Serial.println("Obstacle at a safe distance, medium speed.");
-      dutyCycle = 200; 
+      dutyCycle = 150; 
       ledcWrite(0, dutyCycle);
+      ledcWrite(1, dutyCycle);
       digitalWrite(EMERGENCY_STOP_LED_PIN , LOW);
       // motorControl.forward();
+
       break;
     default: // Distance greater than 10 cm
       Serial.println("No obstacle detected, full speed.");
-      dutyCycle = 255; // Full speed
+      dutyCycle = 220; // Full speed
       ledcWrite(0, dutyCycle);
+      ledcWrite(1, dutyCycle);
       digitalWrite(EMERGENCY_STOP_LED_PIN , LOW);
       // motorControl.forward();
       break;
@@ -176,12 +186,16 @@ void setup() {
   Serial.begin(115200);
   pinMode(LANE_DETECT_LED_PIN, OUTPUT); 
   pinMode(EMERGENCY_STOP_LED_PIN, OUTPUT);
+
   // (channel , freq , resolution )
   ledcSetup(0, freq, resolution); // Channel 0 for enable1Pin
   ledcAttachPin(pwm_pin, 0);
+  ledcSetup(1, freq, resolution); // Channel 1 for enable2Pin
+  ledcAttachPin(pwm_pin_2, 1);
     
   // Initialize PWM with 0 duty cycle
   ledcWrite(0, 0); // Channel 0
+  ledcWrite(1, 0); // Channel 1
   
   // Connect to Wi-Fi
   Serial.print("Connecting to ");
@@ -222,4 +236,5 @@ void loop() {
   automatic_break();
   danger_led();
   delay(100);
+ 
 }
