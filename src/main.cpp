@@ -6,6 +6,7 @@
 #include "ultrasonic.h"
 #include <Wire.h>
 #include "ir_sensor.h"
+
 // Replace with your network credentials
 const char* ssid     = "pi";
 const char* password = "12345678";
@@ -13,9 +14,10 @@ const char* password = "12345678";
 // Create an instance of the WebServer on port 80
 WebServer server(80);
 
-// For Led status
 
+// For Led status for automatic break
 bool led_status = 0 ;
+
 
 
 uint8_t motor1Pin1 = IN1; 
@@ -29,6 +31,7 @@ uint8_t pwm_pin = PWM_PIN;
 uint8_t pwm_pin_2 = PWM_PIN_2;
 
 MotorControl motorControl(motor1Pin1,motor1Pin2,motor2Pin1,motor2Pin2);
+
 IR_Sensor ir_sensor_left(LEFT_IR_PIN); // Pass only left pin
 IR_Sensor ir_sensor_right(RIGHT_IR_PIN); // Pass only right pin
 
@@ -60,7 +63,6 @@ void handleRoot() {
       function stopRobot() { fetch('/stop'); }
       function moveRight() { fetch('/right'); }
       function moveReverse() { fetch('/reverse'); }
-
     </script>
   </head>
   <body>

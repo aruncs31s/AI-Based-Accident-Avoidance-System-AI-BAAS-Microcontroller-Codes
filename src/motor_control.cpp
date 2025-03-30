@@ -40,18 +40,25 @@ void MotorControl::backward(){
 void MotorControl::left()
 {
   Serial.println("LFT");
-  digitalWrite(_IN1, LOW);
-  digitalWrite(_IN2, HIGH);
-  digitalWrite(_IN3, HIGH);
-  digitalWrite(_IN4, LOW);
-}
-void MotorControl::right()
-{
-  Serial.println("RT");
   digitalWrite(_IN1, HIGH);
   digitalWrite(_IN2, LOW);
   digitalWrite(_IN3, LOW);
   digitalWrite(_IN4, HIGH);
+  delay(300);
+  forward();
+}
+void MotorControl::right()
+{
+  Serial.println("RT");
+
+  digitalWrite(_IN1, LOW);
+  digitalWrite(_IN2, HIGH);
+  digitalWrite(_IN3, HIGH);
+  digitalWrite(_IN4, LOW);
+  delay(300);
+  forward();
+
+
 }
 void MotorControl::stop()
 {
