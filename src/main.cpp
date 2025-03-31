@@ -14,9 +14,15 @@ const char* password = "12345678";
 // Create an instance of the WebServer on port 80
 WebServer server(80);
 
+#define LEFT 0
+#define RIGHT 1
+#define BACK 2
+#define FORWARD 3
+#define STOP 4
 
 // For Led status for automatic break
 bool led_status = 0 ;
+uint8_t direction = 0;
 
 
 
@@ -83,34 +89,39 @@ void handleRoot() {
 
 void handleForward() {
   Serial.println("Forward");
+  direction = FORWARD;
   motorControl.forward();
   server.send(200);
+  
 }
 
 void handleLeft() {
   Serial.println("Left");
+  direction = LEFT;
   motorControl.left();
   server.send(200);
 }
 
 void handleStop() {
   Serial.println("Stop");
+  direction= STOP;
   motorControl.stop();
   server.send(200);
 }
 
 void handleRight() {
   Serial.println("Right");
+  direction = RIGHT;
   motorControl.right();
   server.send(200);
 }
 
 void handleReverse() {
   Serial.println("Reverse");
+  direction= BACK;
   ledcWrite(0, 200);
   ledcWrite(1, 200);
   motorControl.backward();
-
   server.send(200);
 }
 
@@ -149,29 +160,53 @@ void danger_led(){
 void automatic_break(){
   switch (ultrasonic.MeasureInCentimeters()) {
     case 0 ... 2: 
+    if(direction == BACK){
+      ledcWrite(0, 200);
+      ledcWrite(1, 200);
+    }
+    else{
       Serial.println("Obstacle very close, stopping.");
       ledcWrite(0, 0);
       ledcWrite(1, 0);
       digitalWrite(EMERGENCY_STOP_LED_PIN , HIGH);
+    
+    }
+      
       // motorControl.stop();
       
       break;
     case 3 ... 5: 
+      if(direction == BACK){
+        ledcWrite(0, 200);
+        ledcWrite(1, 200);
+      
+      }
+      else{
       Serial.println("Obstacle nearby, reducing speed to half.");
-      dutyCycle = 100; 
+
+      dutyCycle = 90; 
       ledcWrite(0, dutyCycle);
       ledcWrite(1, dutyCycle);
       led_status = !led_status;
       digitalWrite(EMERGENCY_STOP_LED_PIN , led_status);
+      }
       // motorControl.forward();
       break;
     case 6 ... 10: 
+    if(direction == BACK){
+      ledcWrite(0, 200);
+      ledcWrite(1, 200);
+    
+    }
+    else{
       Serial.println("Obstacle at a safe distance, medium speed.");
-      dutyCycle = 150; 
+      dutyCycle = 120; 
       ledcWrite(0, dutyCycle);
       ledcWrite(1, dutyCycle);
       digitalWrite(EMERGENCY_STOP_LED_PIN , LOW);
-      // motorControl.forward();
+      // motorControl.forward();  
+    }
+      
 
       break;
     default: // Distance greater than 10 cm
